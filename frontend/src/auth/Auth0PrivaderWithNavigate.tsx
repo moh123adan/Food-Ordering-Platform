@@ -21,7 +21,6 @@ const Auth0PrivaderWithNavigate = ({ children }: Props) => {
       createUser({ auth0Id: user.sub, name: user.name });
     }
   };
-
   return (
     <Auth0Provider
       domain={domain}
