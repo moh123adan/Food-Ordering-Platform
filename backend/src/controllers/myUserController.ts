@@ -1,11 +1,19 @@
 import { Request, Response } from "express";
 import User from "../models/userModel";
 
-//get current user
-const getCurrentUser = async (req: Request, res: Response) => {
+interface AuthenticatedRequest extends Request {
+  userId?: string; 
+}
+
+// Get current user
+const getCurrentUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = ({_id: userId._id})
-    const currentUser = await User.findOne({ _id: req.userId });
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is missing" });
+    }
+
+    const currentUser = await User.findById(userId);
 
     if (!currentUser) {
       return res.status(404).json({ message: "User not found" });
@@ -14,13 +22,12 @@ const getCurrentUser = async (req: Request, res: Response) => {
     res.json(currentUser);
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "user can't find, something went wrong" });
+    res.status(500).json({ message: "User can't be found, something went wrong" });
   }
 };
+
+// Create current user
 const createCurrentUser = async (req: Request, res: Response) => {
-  //check if the user exists
-  // create the user if it doesn't exist
-  // return the user object to the calling client
   try {
     const { auth0Id } = req.body;
     const existingUser = await User.findOne({ auth0Id });
@@ -28,6 +35,7 @@ const createCurrentUser = async (req: Request, res: Response) => {
     if (existingUser) {
       return res.status(200).send();
     }
+
     const newUser = new User(req.body);
     await newUser.save();
 
@@ -38,27 +46,33 @@ const createCurrentUser = async (req: Request, res: Response) => {
   }
 };
 
-//update current user
-const updateCurrentUser = async (req: Request, res: Response) => {
+// Update current user
+const updateCurrentUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { name, addressLine1, country, city } = req.body;
+    const userId = req.userId;
 
-    const user = await User.findById(req.userId);
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is missing" });
+    }
+
+    const user = await User.findById(userId);
 
     if (!user) {
-      res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
-    (user.name = name),
-      (user.addressLine1 = addressLine1),
-      (user.coutry = country);
-    user.city = city;
+
+    user.name = name || user.name;
+    user.addressLine1 = addressLine1 || user.addressLine1;
+    user.city = city || user.city;
+    user.country = country || user.country;
 
     await user.save();
 
-    res.send(user);
+    res.json(user);
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "user failed to update" });
+    res.status(500).json({ message: "User failed to update" });
   }
 };
 
